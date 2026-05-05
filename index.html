@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BSC — AI Writing Assessment Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #0f1923;
+  --paper: #f5f2ed;
+  --card: #ffffff;
+  --accent: #b5271a;
+  --navy: #1c2b4a;
+  --gold: #c9952a;
+  --green: #1e7d46;
+  --muted: #6b6560;
+  --line: #ddd8d0;
+  --purple: #4a1a7a;
+}
+
+body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+/* ═══════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════ */
+#loginScreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+#loginScreen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 40px,
+    rgba(255,255,255,0.015) 40px,
+    rgba(255,255,255,0.015) 41px
+  );
+}
+#loginScreen::after {
+  content: '';
+  position: absolute;
+  top: -200px; right: -200px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(201,149,42,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.login-box {
+  background: white;
+  border-radius: 20px;
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+  animation: fadeUp 0.5s ease forwards;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.login-logo .school-badge {
+  width: 68px; height: 68px;
+  background: var(--navy);
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 20px rgba(28,43,74,0.3);
+}
+.login-logo .school-badge span { font-size: 28px; }
+.login-logo h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.login-logo p { font-size: 12px; color: var(--muted); }
+
+.login-divider {
+  border: none;
+  border-top: 1.5px solid var(--line);
+  margin: 20px 0;
+}
+
+.login-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 8px;
+}
+.login-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  letter-spacing: 3px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: var(--paper);
+}
+.login-input:focus { border-color: var(--navy); background: white; }
+.login-input::placeholder { letter-spacing: 0; color: #bbb; }
+
+.login-btn {
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px;
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+.login-btn:hover { background: #0f1923; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(28,43,74,0.3); }
+
+.login-error {
+  display: none;
+  margin-top: 12px;
+  background: #fdecea;
+  border: 1px solid #f5c6c2;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ═══════════════════════════════
+   MAIN APP
+═══════════════════════════════ */
+#app { display: none; }
+
+.topbar {
+  background: var(--navy);
+  border-bottom: 3px solid var(--gold);
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-logo {
+  background: var(--gold);
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  color: white;
+  white-space: nowrap;
+}
+.topbar-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  display: none;
+}
+@media(min-width:600px){ .topbar-sub { display: block; } }
+.topbar-pill {
+  margin-left: auto;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.8);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.logout-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.6);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.logout-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+.main { max-width: 840px; margin: 32px auto; padding: 0 18px 80px; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  padding: 26px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+.card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  color: var(--navy);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.step-badge {
+  background: var(--navy);
+  color: white;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* FORM */
+.form-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 180px; }
+label.flabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+input[type="text"] {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  transition: border-color 0.2s;
+  outline: none;
+}
+input[type="text"]:focus { border-color: var(--navy); background: white; }
+
+/* UPLOAD */
+.upload-zone {
+  border: 2.5px dashed var(--line);
+  border-radius: 14px;
+  padding: 34px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--paper);
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.over {
+  border-color: var(--navy);
+  background: #eef0f8;
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 38px; margin-bottom: 10px; }
+.upload-zone h3 { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+.upload-zone p { font-size: 12px; color: var(--muted); }
+
+.thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.thumb {
+  position: relative;
+  width: 78px; height: 78px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--line);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb .rm {
+  position: absolute; top: 3px; right: 3px;
+  background: var(--accent); color: white;
+  border: none; border-radius: 50%;
+  width: 18px; height: 18px; font-size: 9px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-weight: bold;
+}
+.thumb-count { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+/* GRADE BUTTON */
+.grade-btn {
+  width: 100%; padding: 16px;
+  background: var(--accent);
+  color: white; border: none;
+  border-radius: 12px;
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow: 0 4px 16px rgba(181,39,26,0.3);
+  transition: all 0.2s;
+}
+.grade-btn:hover:not(:disabled) { background: #9a1f15; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(181,39,26,0.4); }
+.grade-btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; transform: none; }
+
+/* LOADING */
+.loading-card { display: none; text-align: center; padding: 50px 20px; }
+.loading-card.on { display: block; }
+.spinner {
+  width: 50px; height: 50px;
+  border: 4px solid var(--line);
+  border-top-color: var(--navy);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-card h2 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--navy); margin-bottom: 20px; }
+.lstep { font-size: 13px; color: var(--muted); margin: 6px 0; transition: color 0.3s; }
+.lstep.on { color: var(--navy); font-weight: 600; }
+.lstep.done { color: var(--green); }
+.lstep.done::before { content: '✓ '; }
+
+/* RESULTS */
+.results { display: none; }
+.results.show { display: block; }
+
+.result-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #0f1923 100%);
+  border-radius: 16px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 18px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.result-hero::after {
+  content: 'BSC';
+  position: absolute;
+  right: 24px; bottom: -10px;
+  font-family: 'Playfair Display', serif;
+  font-size: 80px;
+  color: rgba(255,255,255,0.04);
+  letter-spacing: 4px;
+}
+.hero-grade {
+  font-family: 'Playfair Display', serif;
+  font-size: 58px;
+  color: var(--gold);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.hero-info h2 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 6px; }
+.hero-info p { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.6; }
+.hero-tag {
+  margin-top: 8px;
+  display: inline-block;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.sec-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  color: var(--navy);
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+/* VCOP */
+.vcop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:560px){ .vcop-grid { grid-template-columns: 1fr; } }
+.vcop-item {
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--paper);
+}
+.vcop-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.vcop-letter {
+  background: var(--navy); color: white;
+  border-radius: 6px; padding: 2px 9px;
+  font-size: 13px; font-weight: 700;
+}
+.vcop-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+.vcop-score { font-size: 11px; color: var(--green); font-weight: 700; margin-bottom: 5px; }
+.vcop-ev { font-size: 11.5px; color: var(--ink); margin-bottom: 3px; }
+.vcop-comment { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+/* SPELLING TABLE */
+.stbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stbl th { background: var(--purple); color: white; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; }
+.stbl td { padding: 7px 12px; border-bottom: 1px solid var(--line); }
+.stbl tr:nth-child(even) td { background: #faf8ff; }
+.wrong { color: var(--accent); font-weight: 700; }
+.right { color: var(--green); font-weight: 700; }
+
+/* REASON */
+.reason-box {
+  background: #f0f4ff;
+  border-left: 4px solid var(--navy);
+  border-radius: 0 10px 10px 0;
+  padding: 16px 18px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--ink);
+}
+
+/* TARGETS */
+.target-row {
+  display: flex; gap: 12px;
+  padding: 13px;
+  border-left: 3px solid var(--gold);
+  background: #fffdf5;
+  border-radius: 0 10px 10px 0;
+  margin-bottom: 10px;
+}
+.tnum {
+  background: var(--gold); color: var(--ink);
+  width: 26px; height: 26px; min-width: 26px;
+  border-radius: 50%;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.ttitle { font-size: 13px; font-weight: 600; display: block; margin-bottom: 3px; }
+.tdetail { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* BUTTONS */
+.dl-btn {
+  width: 100%; padding: 15px;
+  background: var(--navy); color: white;
+  border: none; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer; margin-top: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.2s;
+  box-shadow: 0 4px 14px rgba(28,43,74,0.25);
+}
+.dl-btn:hover { background: #0f1923; }
+
+.new-btn {
+  width: 100%; padding: 13px;
+  background: transparent;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; color: var(--muted);
+  cursor: pointer; margin-top: 10px;
+  transition: all 0.2s;
+}
+.new-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+.error-bar {
+  display: none;
+  background: #fdecea;
+  border: 1px solid #f5c6c2;
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="school-badge"><span>🏫</span></div>
+      <h1>BSC</h1>
+      <p>AI Writing Assessment Tool &nbsp;·&nbsp; Grade 4</p>
+    </div>
+    <hr class="login-divider">
+    <label class="login-label" for="pwInput">Staff Access Password</label>
+    <input class="login-input" type="password" id="pwInput" placeholder="Enter password…" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">🔐 &nbsp;Enter Tool</button>
+    <div class="login-error" id="loginErr">Incorrect password. Please try again.</div>
+    <div class="login-footer">
+      Ros Wilson Big Writing · Criterion Scale<br>
+      Powered by Claude AI
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════ -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">📝</div>
+    <div>
+      <div class="topbar-title">BSC — Writing Assessment</div>
+      <div class="topbar-sub">Ros Wilson Big Writing · Criterion Scale · Grade 4</div>
+    </div>
+    <div class="topbar-pill">Powered by Claude AI</div>
+    <button class="logout-btn" onclick="doLogout()">Log out</button>
+  </div>
+
+  <div class="main">
+
+    <!-- FORM -->
+    <div id="formSection">
+      <div class="card">
+        <div class="card-title"><span class="step-badge">1</span> Teacher & Student Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="flabel">Teacher Name</label>
+            <input type="text" id="teacherName" placeholder="e.g. Mr Hani">
+          </div>
+          <div class="form-group">
+            <label class="flabel">Student Name</label>
+            <input type="text" id="studentName" placeholder="e.g. Adam El-Nashally">
+          </div>
+          <div class="form-group">
+            <label class="flabel">Year / Grade</label>
+            <input type="text" id="yearGroup" placeholder="e.g. Year 4" value="Year 4">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="step-badge">2</span> Upload Exam Photos &nbsp;<span style="font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400">(up to 6 photos)</span></div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept="image/*" multiple>
+          <div class="upload-icon">📸</div>
+          <h3>Click to upload or drag &amp; drop</h3>
+          <p>JPG · PNG · HEIC &nbsp;—&nbsp; up to 6 photos per student</p>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+        <div class="thumb-count" id="thumbCount"></div>
+      </div>
+
+      <div class="error-bar" id="errorBar"></div>
+
+      <button class="grade-btn" onclick="startGrading()">
+        ✦ &nbsp;Grade This Student's Writing
+      </button>
+    </div>
+
+    <!-- LOADING -->
+    <div class="card loading-card" id="loadingCard">
+      <div class="spinner"></div>
+      <h2>Analysing Writing…</h2>
+      <div id="ls1" class="lstep">📖 Reading handwriting from photos</div>
+      <div id="ls2" class="lstep">🔍 Applying VCOP criteria</div>
+      <div id="ls3" class="lstep">📊 Scoring against Criterion Scale</div>
+      <div id="ls4" class="lstep">🎯 Generating targets &amp; feedback</div>
+      <div id="ls5" class="lstep">✅ Preparing your report</div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results" id="results">
+
+      <div class="result-hero">
+        <div class="hero-grade" id="dispGrade">3B</div>
+        <div class="hero-info">
+          <h2 id="dispName">Student</h2>
+          <p id="dispVerdict">Secure Level 3 — Meeting Year 4 Expected Standard</p>
+          <p id="dispTeacher" style="margin-top:4px;font-size:12px;opacity:0.55"></p>
+          <span class="hero-tag">BSC · Ros Wilson Big Writing</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">📖 Story Transcription</div>
+        <div id="transcription" style="font-size:13px;line-height:1.9;color:var(--ink);font-style:italic;"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">⚡ VCOP Analysis</div>
+        <div class="vcop-grid" id="vcopGrid"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">🔴 Spelling Errors Identified</div>
+        <table class="stbl">
+          <thead><tr><th>Written by Student</th><th>Correct Spelling</th><th>Note</th></tr></thead>
+          <tbody id="spellBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">💡 Why This Grade?</div>
+        <div class="reason-box" id="reasonBox"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">🎯 Targets to Move Up</div>
+        <div id="targetsDiv"></div>
+      </div>
+
+      <button class="dl-btn" onclick="downloadPDF()">⬇ &nbsp;Download PDF Report</button>
+      <button class="new-btn" onclick="resetTool()">+ Grade Another Student</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ══════ AUTH ══════ */
+const PASS = 'School2026';
+function doLogin() {
+  const v = document.getElementById('pwInput').value;
+  if (v === PASS) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('loginErr').style.display = 'none';
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
+  resetTool();
+}
+
+/* ══════ FILE UPLOAD ══════ */
+let files = [];
+let result = null;
+
+const fi = document.getElementById('fileInput');
+const uz = document.getElementById('uploadZone');
+
+fi.addEventListener('change', e => addFiles(e.target.files));
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('over'));
+uz.addEventListener('drop', e => { e.preventDefault(); uz.classList.remove('over'); addFiles(e.dataTransfer.files); });
+
+function addFiles(list) {
+  const rem = 6 - files.length;
+  Array.from(list).slice(0, rem).forEach(f => {
+    if (f.type.startsWith('image/')) { files.push(f); renderThumb(f, files.length - 1); }
+  });
+  updateCount();
+}
+function renderThumb(f, i) {
+  const r = new FileReader();
+  r.onload = e => {
+    const d = document.createElement('div');
+    d.className = 'thumb'; d.id = 'th' + i;
+    d.innerHTML = `<img src="${e.target.result}"><button class="rm" onclick="removeFile(${i})">✕</button>`;
+    document.getElementById('thumbs').appendChild(d);
+  };
+  r.readAsDataURL(f);
+}
+function removeFile(i) {
+  files.splice(i, 1);
+  document.getElementById('thumbs').innerHTML = '';
+  files.forEach((f, idx) => renderThumb(f, idx));
+  updateCount();
+}
+function updateCount() {
+  const c = files.length;
+  document.getElementById('thumbCount').textContent = c ? `${c} photo${c > 1 ? 's' : ''} selected` : '';
+}
+
+/* ══════ HELPERS ══════ */
+function toB64(f) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(f);
+  });
+}
+function showErr(m) {
+  const el = document.getElementById('errorBar');
+  el.textContent = m; el.style.display = 'block';
+}
+function hideErr() { document.getElementById('errorBar').style.display = 'none'; }
+
+function animateSteps() {
+  const ids = ['ls1','ls2','ls3','ls4','ls5'];
+  const delays = [0, 5000, 11000, 17000, 23000];
+  ids.forEach((id, i) => {
+    setTimeout(() => {
+      if (i > 0) { const prev = document.getElementById(ids[i-1]); prev.className = 'lstep done'; }
+      document.getElementById(id).className = 'lstep on';
+    }, delays[i]);
+  });
+}
+
+/* ══════ GRADING ══════ */
+async function startGrading() {
+  hideErr();
+  const teacher = document.getElementById('teacherName').value.trim();
+  const student = document.getElementById('studentName').value.trim();
+  const year    = document.getElementById('yearGroup').value.trim();
+
+  if (!student) { showErr('Please enter the student name.'); return; }
+  if (!files.length) { showErr('Please upload at least one photo of the exam.'); return; }
+
+  document.getElementById('formSection').style.display = 'none';
+  document.getElementById('loadingCard').classList.add('on');
+  animateSteps();
+
+  try {
+    const imgBlocks = await Promise.all(files.map(async f => ({
+      type: 'image',
+      source: { type: 'base64', media_type: f.type || 'image/jpeg', data: await toB64(f) }
+    })));
+
+    const prompt = `You are an expert primary school writing assessor trained in the Ros Wilson Big Writing Criterion Scale.
+
+Student: ${student}
+Teacher: ${teacher || 'BSC Staff'}
+School: BSC
+Year: ${year || 'Year 4'}
+
+The photos show a handwritten fantasy writing assessment using the Story Mountain structure.
+
+Assess against the Ros Wilson Big Writing Criterion Scale. Return ONLY valid JSON — no markdown, no extra text:
+
+{
+  "grade": "3B",
+  "verdict": "Secure Level 3 — Meeting Year 4 Expected Standard",
+  "transcription": "Full transcription preserving student words, noting errors in [brackets]",
+  "vcop": {
+    "vocabulary":   { "score": "3/5", "evidence": "examples from text", "comment": "analysis" },
+    "connectives":  { "score": "3/5", "evidence": "examples from text", "comment": "analysis" },
+    "openers":      { "score": "3/5", "evidence": "examples from text", "comment": "analysis" },
+    "punctuation":  { "score": "3/5", "evidence": "what was used",      "comment": "analysis" }
+  },
+  "spelling_errors": [
+    { "wrong": "beutiful", "correct": "beautiful", "note": "common Year 4 word" }
+  ],
+  "reason": "2-3 sentences explaining exactly why this level, referencing specific Criterion Scale criteria met and not met. Levels: 2C 2B 2A 3C 3B 3A 4C 4B 4A. Year 4 expected = 3B.",
+  "targets": [
+    { "title": "Target 1 — Vocabulary",        "detail": "specific actionable instruction" },
+    { "title": "Target 2 — Setting Description","detail": "specific actionable instruction" },
+    { "title": "Target 3 — Spelling",           "detail": "specific words to practise"     }
+  ]
+}
+
+Criterion Scale summary:
+• Level 2: simple sentences, and/but/so connectives, basic punctuation, some adjectives
+• Level 3B (Year 4 expected): organised writing, range of connectives (because/when/if/while), adjectives & adverbs, accurate sentence punctuation, experimenting with wider punctuation, clear beginning-middle-end structure
+• Level 3A: developed characters/settings/feelings, sense of pace, generalising words, wide punctuation
+• Level 4: paragraphs, sophisticated connectives (although/however), complex sentences, accurate apostrophes & speech marks`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: [...imgBlocks, { type: 'text', text: prompt }] }]
+      })
+    });
+
+    const data = await resp.json();
+    const raw  = data.content?.find(b => b.type === 'text')?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    result = { ...JSON.parse(clean), studentName: student, teacherName: teacher || 'BSC Staff', yearGroup: year };
+
+    renderResults(result);
+  } catch(err) {
+    document.getElementById('loadingCard').classList.remove('on');
+    document.getElementById('formSection').style.display = 'block';
+    showErr('Error: ' + err.message + ' — Please try again.');
+  }
+}
+
+/* ══════ RENDER RESULTS ══════ */
+function renderResults(d) {
+  document.getElementById('loadingCard').classList.remove('on');
+
+  document.getElementById('dispGrade').textContent   = d.grade;
+  document.getElementById('dispName').textContent    = d.studentName;
+  document.getElementById('dispVerdict').textContent = d.verdict;
+  document.getElementById('dispTeacher').textContent = 'Assessed by: ' + d.teacherName;
+  document.getElementById('transcription').textContent = d.transcription;
+  document.getElementById('reasonBox').textContent   = d.reason;
+
+  // VCOP
+  const labels = { vocabulary:'Vocabulary', connectives:'Connectives', openers:'Openers', punctuation:'Punctuation' };
+  const letters = { vocabulary:'V', connectives:'C', openers:'O', punctuation:'P' };
+  const vg = document.getElementById('vcopGrid');
+  vg.innerHTML = '';
+  Object.entries(d.vcop).forEach(([k, v]) => {
+    vg.innerHTML += `
+      <div class="vcop-item">
+        <div class="vcop-head">
+          <span class="vcop-letter">${letters[k]}</span>
+          <span class="vcop-name">${labels[k]}</span>
+        </div>
+        <div class="vcop-score">Score: ${v.score}</div>
+        <div class="vcop-ev"><b>Evidence:</b> ${v.evidence}</div>
+        <div class="vcop-comment">${v.comment}</div>
+      </div>`;
+  });
+
+  // Spelling
+  const sb = document.getElementById('spellBody');
+  sb.innerHTML = '';
+  if (d.spelling_errors?.length) {
+    d.spelling_errors.forEach(e => {
+      sb.innerHTML += `<tr><td class="wrong">${e.wrong}</td><td class="right">${e.correct}</td><td style="color:var(--muted);font-size:12px">${e.note}</td></tr>`;
+    });
+  } else {
+    sb.innerHTML = `<tr><td colspan="3" style="color:var(--green);padding:12px">No major spelling errors found ✓</td></tr>`;
+  }
+
+  // Targets
+  const td = document.getElementById('targetsDiv');
+  td.innerHTML = '';
+  (d.targets || []).forEach((t, i) => {
+    td.innerHTML += `
+      <div class="target-row">
+        <div class="tnum">${i+1}</div>
+        <div><span class="ttitle">${t.title}</span><span class="tdetail">${t.detail}</span></div>
+      </div>`;
+  });
+
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ══════ PDF ══════ */
+function downloadPDF() {
+  if (!result) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const d = result;
+  const pw=210, ph=297, ml=20, cw=170;
+  let y=0;
+
+  function np(need=10){ if(y+need>ph-14){ doc.addPage(); y=20; } }
+
+  // Header
+  doc.setFillColor(28,43,74); doc.rect(0,0,pw,30,'F');
+  doc.setFillColor(201,149,42); doc.rect(0,28,pw,3,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('BSC — Writing Assessment Report', ml, 13);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Ros Wilson Big Writing Criterion Scale  ·  Grade 4 British Curriculum', ml, 22);
+  y = 40;
+
+  // Info block
+  doc.setFillColor(245,242,237); doc.setDrawColor(221,216,208);
+  doc.roundedRect(ml,y,cw,34,3,3,'FD');
+  doc.setTextColor(28,43,74); doc.setFontSize(10); doc.setFont('helvetica','bold');
+  ['Student:','Teacher:','School:','Year:'].forEach((lbl,i) => doc.text(lbl, ml+4, y+8+(i*7)));
+  doc.setTextColor(20,20,20); doc.setFont('helvetica','normal');
+  [d.studentName, d.teacherName, 'BSC', d.yearGroup].forEach((val,i) => doc.text(val||'—', ml+30, y+8+(i*7)));
+  // grade box
+  doc.setFillColor(28,43,74); doc.roundedRect(ml+cw-42,y+5,38,24,3,3,'F');
+  doc.setTextColor(201,149,42); doc.setFontSize(20); doc.setFont('helvetica','bold');
+  doc.text(d.grade, ml+cw-23, y+22, {align:'center'});
+  y += 42;
+
+  // Verdict bar
+  doc.setFillColor(30,125,70); doc.roundedRect(ml,y,cw,10,2,2,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text(d.verdict, pw/2, y+7, {align:'center'});
+  y += 16;
+
+  function secBar(title, r,g,b){ np(12); doc.setFillColor(r,g,b); doc.rect(ml,y,cw,9,'F'); doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text(title,ml+4,y+6); y+=13; }
+  function bodyTxt(txt, ind=0){ doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.splitTextToSize(txt,cw-ind-2).forEach(l=>{ np(6); doc.text(l,ml+ind,y); y+=5.5; }); y+=1; }
+
+  secBar('STORY TRANSCRIPTION', 44,62,80);
+  bodyTxt(d.transcription);
+  y+=3;
+
+  secBar('VCOP ANALYSIS', 28,43,74);
+  const vk=['vocabulary','connectives','openers','punctuation'];
+  const vl=['V — Vocabulary','C — Connectives','O — Openers','P — Punctuation'];
+  vk.forEach((k,i)=>{
+    np(22); const v=d.vcop[k];
+    doc.setFillColor(232,234,246); doc.roundedRect(ml,y,cw,18,2,2,'F');
+    doc.setFillColor(28,43,74); doc.roundedRect(ml+2,y+3,30,5,1,1,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+    doc.text(vl[i],ml+4,y+7);
+    doc.setTextColor(30,125,70); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('Score: '+v.score, ml+cw-26, y+7);
+    doc.setTextColor(40,40,40); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text(doc.splitTextToSize('Evidence: '+v.evidence, cw-10)[0], ml+4, y+12);
+    doc.text(doc.splitTextToSize(v.comment, cw-10)[0], ml+4, y+16.5);
+    y+=22;
+  });
+  y+=2;
+
+  secBar('SPELLING ERRORS', 74,26,122);
+  if(d.spelling_errors?.length){
+    [[40,'Written'],[40,'Correct'],[cw-80,'Note']].reduce((x,[w,lbl])=>{ doc.setFillColor(74,26,122); doc.rect(ml+x,y,w,7,'F'); doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.text(lbl,ml+x+2,y+5); return x+w+2; },0);
+    y+=8;
+    d.spelling_errors.forEach((e,i)=>{
+      np(8); if(i%2===0){doc.setFillColor(243,229,245); doc.rect(ml,y,cw,7,'F');}
+      doc.setTextColor(181,39,26); doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.text(e.wrong,ml+2,y+5);
+      doc.setTextColor(30,125,70); doc.text(e.correct,ml+44,y+5);
+      doc.setTextColor(90,90,90); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(e.note,ml+86,y+5);
+      y+=7;
+    });
+  } else { bodyTxt('No major spelling errors found.'); }
+  y+=4;
+
+  secBar('WHY THIS GRADE?', 28,43,74);
+  bodyTxt(d.reason, 2); y+=3;
+
+  secBar('TARGETS TO MOVE UP', 201,101,20);
+  (d.targets||[]).forEach((t,i)=>{
+    np(18); doc.setFillColor(255,243,220); doc.setDrawColor(201,149,42);
+    doc.roundedRect(ml,y,cw,16,2,2,'FD');
+    doc.setFillColor(201,149,42); doc.circle(ml+6,y+8,4,'F');
+    doc.setTextColor(20,20,20); doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text(String(i+1),ml+6,y+9.5,{align:'center'});
+    doc.setTextColor(160,70,10); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(t.title,ml+13,y+6);
+    doc.setTextColor(60,60,60); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text(doc.splitTextToSize(t.detail,cw-16)[0],ml+13,y+12);
+    y+=20;
+  });
+
+  // Footer
+  doc.setFillColor(28,43,74); doc.rect(0,ph-12,pw,12,'F');
+  doc.setTextColor(160,170,200); doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+  doc.text('BSC  ·  Ros Wilson Big Writing Criterion Scale  ·  AI-Assisted  ·  '+new Date().toLocaleDateString('en-GB'), pw/2, ph-5, {align:'center'});
+
+  doc.save((d.studentName||'Student').replace(/ /g,'_')+'_BSC_Assessment.pdf');
+}
+
+/* ══════ RESET ══════ */
+function resetTool(){
+  files=[]; result=null;
+  document.getElementById('thumbs').innerHTML='';
+  document.getElementById('thumbCount').textContent='';
+  document.getElementById('studentName').value='';
+  document.getElementById('teacherName').value='';
+  document.getElementById('fileInput').value='';
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('formSection').style.display='block';
+  ['ls1','ls2','ls3','ls4','ls5'].forEach(id => document.getElementById(id).className='lstep');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
